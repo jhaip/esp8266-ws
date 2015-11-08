@@ -1,0 +1,39 @@
+<html>
+<head>
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>
+var project = 'project1';
+var url = 'http://localhost:3000/'+project;
+var data = {"type":"BINARY","label":"A0","value":"1"};
+function send_data(value) {
+    console.log("sending "+value);
+    data.value = value;
+    $.ajax({
+      url:url,
+      type:"POST",
+      data:JSON.stringify(data),
+      contentType:"application/json; charset=utf-8",
+      dataType:"json",
+      success: function(){}
+    });
+}
+alert("about to start");
+//send_data(0);
+var up = 0;
+var count = 0;
+var t = setInterval(function(){
+    send_data(up);
+    up = (up === 0) ? 1 : 0;
+    count += 1;
+    if (count == 50) {
+        clearInterval(t);
+    }
+}, 10);
+// setTimeout(function(){ send_data(0); }, 5000);
+// setTimeout(function(){ send_data(1); }, 6000);
+
+</script>
+</body>
+</html>
