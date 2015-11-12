@@ -76,7 +76,9 @@ void setup() {
 
     webSocket.begin("192.168.1.14", 81);
     webSocket.onEvent(webSocketEvent);
-
+    delay(50);
+    webSocket.sendTXT("{'type':'BREAK','value':'BOOT'}");
+    webSocket.loop();
 }
 
 int count = 0;
@@ -84,15 +86,20 @@ int count = 0;
 void loop() {
     webSocket.loop();
     count += 1;
-    webSocket.sendTXT("Beginning");
-    //webSocket.loop();
-    delay(5);
-    webSocket.sendTXT("middle ");
-    webSocket.sendTXT("Beginning ");
-    //webSocket.loop();
-    delay(10);
-    if (!digitalRead(0)) {
-      int val = count % 2;
-      webSocket.sendTXT("val="+String(val)+" "+micros());
+    if (count < 200) {
+      webSocket.sendTXT("{'type':'BREAK','value':'LOOP'}");
+      delay(20);
+      webSocket.sendTXT("{'type':'BINARY', 'label':'A0', 'value':0}");
+      webSocket.sendTXT("{'type':'BINARY', 'label':'D1', 'value':0}");
+      delay(40);
+      if (!digitalRead(0)) {
+        int val = count % 2;
+        webSocket.sendTXT("{'type':'BINARY', 'label':'A0', 'value':"+String(val)+"}");
+        //webSocket.sendTXT("val="+String(val)+" "+micros());
+      }
+      delay(20);
+    }
+    if (count == 200) {
+      webSocket.sendTXT("{'type':'BREAK','value':'END'}");
     }
 }

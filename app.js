@@ -124,6 +124,7 @@ function originIsAllowed(origin) {
 }
 
 var connections = [];
+var webclientconnection = false;
  
 wsServer.on('request', function(request) {
     
@@ -141,10 +142,22 @@ wsServer.on('request', function(request) {
     
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
-            console.log('Received Message: ' + message.utf8Data);
+            //console.log('Received Message: ' + message.utf8Data);
             //for (var i=0; i<connections.length; i+=1) {
             //    connections[i].sendUTF(message.utf8Data);   
             //}            
+            if (message.utf8Data == 'Hello from Web Client') {
+                console.log("found the web client!");
+                webclientconnection = connection;
+            }
+            if (webclientconnection != false && connection != webclientconnection) {
+                var re = new RegExp("'", 'g');
+                var clean_data = message.utf8Data.replace(re,'"');
+                var obj = JSON.parse(clean_data);
+                var d = new Date();
+                obj.timestamp = d.toISOString();
+                webclientconnection.sendUTF(JSON.stringify(obj));
+            }
         }
         else if (message.type === 'binary') {
             console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
@@ -158,6 +171,9 @@ wsServer.on('request', function(request) {
             if (connections[i] == connection) {
                 connections.splice(i,1);
             }
+        }
+        if (connection == webclientconnection) {
+            webclientconnection = false;
         }
         console.log("Number of connections: "+connections.length);
     });

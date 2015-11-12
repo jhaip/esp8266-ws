@@ -1,29 +1,126 @@
 <!DOCTYPE HTML>
 <html>
    <head>
-  
+    <title>Viz</title>
+   </head>
+   <body>
+   
+      <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.js"></script>
       <script type="text/javascript">
+          var numbers = [];
          var connection=new WebSocket("ws://localhost:81",'arduino');
+
+          var margin = {top: 30, right: 20, bottom: 30, left: 50},
+          width = 600 - margin.left - margin.right,
+          height = 100 - margin.top - margin.bottom;
+
+          var x = d3.time.scale().range([0, width]);
+          var y = d3.scale.linear().range([height, 0]);
+
+          var xAxis = d3.svg.axis().scale(x)
+              .orient("bottom").ticks(5);
+
+          var yAxis = d3.svg.axis().scale(y)
+              .orient("left").ticks(5);
+
+          var svg = d3.select("body")
+              .append("svg")
+                  .attr("width", width + margin.left + margin.right)
+                  .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                  .attr("class", "chart")
+                  .attr("transform", 
+                        "translate(" + margin.left + "," + margin.top + ")")
+                  .attr("width", width)
+                  .attr("height", height);
+
           connection.onopen = function () {
-            connection.send('Hello, Server!!'); //send a message to server once connection is opened.
+            connection.send('Hello from Web Client'); //send a message to server once connection is opened.
             console.log("Connection opened");
           };
           connection.onerror = function (error) {
             console.log('Error Logged: ' + error); //log errors
           };
           connection.onmessage = function (e) {
-            console.log('Received From Server: ' + e.data); //log the received message
+            //var re = new RegExp("'", 'g');
+            //var clean_data = e.data.replace(re,'"');
+            //console.log('Received From Server: ' + clean_data); //log the received message
+            msg = JSON.parse(e.data);
+            //console.log(msg);
+
+            if (msg.type == "BINARY" && !isNaN(msg.value)) {
+              var v = parseInt(msg.value);
+              if (!isNaN(v)) {
+                msg.timestamp = new Date(msg.timestamp);
+                msg.value = v;
+                if (numbers.length > 0) {
+                  msg.prev_timestamp = numbers[numbers.length-1].timestamp;
+                } else {
+                  msg.prev_timestamp = msg.timestamp-1;
+                }
+                numbers.push(msg);
+                update();
+              }
+            } else if (msg.type == "BREAK") {
+              if (msg.value == "END") {
+                  console.log("STARTING OVER");
+                  x = d3.time.scale().range([0, width]);
+                  y = d3.scale.linear().range([height, 0]);
+
+                  xAxis = d3.svg.axis().scale(x)
+                      .orient("bottom").ticks(5);
+
+                  yAxis = d3.svg.axis().scale(y)
+                      .orient("left").ticks(5);
+
+                  svg = d3.select("body")
+                      .append("svg")
+                          .attr("width", width + margin.left + margin.right)
+                          .attr("height", height + margin.top + margin.bottom)
+                      .append("g")
+                          .attr("class", "chart")
+                          .attr("transform", 
+                                "translate(" + margin.left + "," + margin.top + ")")
+                          .attr("width", width)
+                          .attr("height", height);
+                  numbers = [];
+                  update();
+              }
+            } else {
+              console.error("Bad input:");
+              console.error(msg);
+            }
           };
+
+          function update() {
+            x.domain(d3.extent(numbers, function(d) { return d.timestamp; }));
+            y.domain([0, d3.max(numbers, function(d) { return d.value; })]);
+            var selection = svg
+                .selectAll(".point").data(numbers)
+                .attr("x1", function(d) { return x(d.prev_timestamp); })
+                .attr("y1", function(d) { return y(d.value); })
+                .attr("x2", function(d) { return x(d.timestamp); })
+                .attr("y2", function(d) { return y(d.value); });
+
+            selection.enter()
+                .append("line")
+                .attr("class", "point")
+                .attr("x1", function(d) { return x(d.prev_timestamp); })
+                .attr("y1", function(d) { return y(d.value); })
+                .attr("x2", function(d) { return x(d.timestamp); })
+                .attr("y2", function(d) { return y(d.value); })
+                .attr("stroke-width", 1)
+                .attr("stroke", "black");
+
+            selection.exit().remove();
+          }
       </script>
-    
-   </head>
-   <body>
-   
-      <div id="sse">
-      </div>
       
    </body>
 </html>
+
+
 <!-- <!doctype html>
 <html>
   <head>
