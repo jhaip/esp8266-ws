@@ -14,6 +14,8 @@
 
 #include <Hash.h>
 
+#include <math.h>
+
 ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
 
@@ -86,20 +88,20 @@ int count = 0;
 void loop() {
     webSocket.loop();
     count += 1;
-    if (count < 200) {
+    if (count < 100) {
       webSocket.sendTXT("{'type':'BREAK','value':'LOOP'}");
       delay(20);
       webSocket.sendTXT("{'type':'BINARY', 'label':'A0', 'value':0}");
       webSocket.sendTXT("{'type':'BINARY', 'label':'D1', 'value':0}");
       delay(40);
       if (!digitalRead(0)) {
-        int val = count % 2;
+        int val = (count % 11)*(2 + count % 7);//(int)sin((double)count/10.)*100;
         webSocket.sendTXT("{'type':'BINARY', 'label':'A0', 'value':"+String(val)+"}");
         //webSocket.sendTXT("val="+String(val)+" "+micros());
       }
       delay(20);
     }
-    if (count == 200) {
+    if (count == 100) {
       webSocket.sendTXT("{'type':'BREAK','value':'END'}");
     }
 }
